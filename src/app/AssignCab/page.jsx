@@ -1384,7 +1384,7 @@ export default function AssignCab() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <FaStickyNote className="inline mr-2" />
-                      Admin Notes
+                      Admin Notess
                     </label>
                     <input
                       type="text"
