@@ -1,5 +1,6 @@
+
 // "use client"
-// import { useState, useEffect } from "react"
+// import { useState, useEffect, useRef } from "react"
 // import axios from "axios"
 // import Sidebar from "../slidebar/page"
 // import { motion } from "framer-motion"
@@ -50,18 +51,24 @@
 //   const [loading, setLoading] = useState(true)
 //   const [showAddCabForm, setShowAddCabForm] = useState(false)
 
-//   // Updated trip assignment fields with new required fields
+//   // Trip assignment fields with added city and state
 //   const [tripData, setTripData] = useState({
 //     customerName: "",
 //     customerPhone: "",
 //     pickupLocation: "",
+//     pickupCity: "",
+//     pickupState: "",
 //     dropLocation: "",
+//     dropCity: "",
+//     dropState: "",
 //     tripType: "One Way",
 //     vehicleType: "Sedan",
 //     scheduledPickupTime: "",
 //     estimatedDistance: "",
 //     estimatedFare: "",
 //     specialInstructions: "",
+//     duration: "",
+//     adminNotes: "",
 //   })
 
 //   const [cabFormData, setCabFormData] = useState({
@@ -76,6 +83,94 @@
 //   const [cabFormErrors, setCabFormErrors] = useState({})
 //   const [cabFormSuccess, setCabFormSuccess] = useState("")
 
+//   // Refs for Google Maps Autocomplete
+//   const pickupInputRef = useRef(null)
+//   const dropInputRef = useRef(null)
+//   const [autocompleteLoaded, setAutocompleteLoaded] = useState(false)
+
+//   // Load Google Maps script
+//   useEffect(() => {
+//     const loadGoogleMaps = () => {
+//       if (window.google) {
+//         console.log("✅ Google Maps script already loaded")
+//         setAutocompleteLoaded(true)
+//         return
+//       }
+//       const script = document.createElement("script")
+//       script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyAKjmBSUJ3XR8uD10vG2ptzqLJAZnOlzqI&libraries=places`
+//       script.async = true
+//       script.defer = true
+//       script.onload = () => {
+//         console.log("✅ Google Maps script loaded successfully")
+//         setAutocompleteLoaded(true)
+//       }
+//       script.onerror = () => {
+//         console.error("❌ Failed to load Google Maps script")
+//         setMessage("Failed to load location services. Please try again.")
+//       }
+//       document.head.appendChild(script)
+//     }
+//     loadGoogleMaps()
+//   }, [])
+
+//   // Initialize Google Maps Autocomplete
+//   useEffect(() => {
+//     if (autocompleteLoaded && pickupInputRef.current && dropInputRef.current) {
+//       const pickupAutocomplete = new window.google.maps.places.Autocomplete(pickupInputRef.current, {
+//         types: ["geocode"], // Changed to geocode for broader suggestions
+//         componentRestrictions: { country: "in" },
+//       })
+//       const dropAutocomplete = new window.google.maps.places.Autocomplete(dropInputRef.current, {
+//         types: ["geocode"], // Changed to geocode for broader suggestions
+//         componentRestrictions: { country: "in" },
+//       })
+
+//       pickupAutocomplete.addListener("place_changed", () => {
+//         const place = pickupAutocomplete.getPlace()
+//         console.log("📍 Pickup Place Response:", place)
+//         if (place.formatted_address) {
+//           const city = place.address_components?.find((comp) =>
+//             comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")
+//           )?.long_name || ""
+//           const state = place.address_components?.find((comp) =>
+//             comp.types.includes("administrative_area_level_1")
+//           )?.long_name || ""
+//           setTripData((prev) => ({
+//             ...prev,
+//             pickupLocation: place.formatted_address,
+//             pickupCity: city,
+//             pickupState: state,
+//           }))
+//           console.log(`Pickup Location: ${place.formatted_address}, City: ${city}, State: ${state}`)
+//         } else {
+//           console.log("⚠️ No formatted address found for pickup location")
+//         }
+//       })
+
+//       dropAutocomplete.addListener("place_changed", () => {
+//         const place = dropAutocomplete.getPlace()
+//         console.log("📍 Drop Place Response:", place)
+//         if (place.formatted_address) {
+//           const city = place.address_components?.find((comp) =>
+//             comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")
+//           )?.long_name || ""
+//           const state = place.address_components?.find((comp) =>
+//             comp.types.includes("administrative_area_level_1")
+//           )?.long_name || ""
+//           setTripData((prev) => ({
+//             ...prev,
+//             dropLocation: place.formatted_address,
+//             dropCity: city,
+//             dropState: state,
+//           }))
+//           console.log(`Drop Location: ${place.formatted_address}, City: ${city}, State: ${state}`)
+//         } else {
+//           console.log("⚠️ No formatted address found for drop location")
+//         }
+//       })
+//     }
+//   }, [autocompleteLoaded])
+
 //   useEffect(() => {
 //     if (typeof window !== "undefined") {
 //       const addedBy = localStorage.getItem("id") || ""
@@ -89,9 +184,15 @@
 //         setLoading(true)
 //         const token = localStorage.getItem("token")
 //         if (!token) return
+
 //         const res = await axios.get(`${baseURL}api/assigncab/freeCabsAndDrivers`, {
 //           headers: { Authorization: `Bearer ${token}` },
 //         })
+
+//         console.log("📊 API Response:", res.data)
+//         console.log("📊 Free Drivers:", res.data.freeDrivers)
+//         console.log("📊 Free Cabs:", res.data.freeCabs)
+
 //         setDrivers(res.data.freeDrivers || [])
 //         setCabs(res.data.freeCabs || [])
 //       } catch (error) {
@@ -105,66 +206,186 @@
 //   }, [cabFormSuccess])
 
 //   const handleAssign = async () => {
-//     if (!selectedDriver || !selectedCab) {
-//       setMessage("⚠️ Please select both driver and cab.")
+//     console.log("🚀 Starting cab assignment process...")
+//     console.log("Selected Driver ID:", selectedDriver)
+//     console.log("Selected Cab ID:", selectedCab)
+//     console.log("Trip Data:", tripData)
+
+//     // Enhanced validation
+//     if (!selectedDriver || selectedDriver === "") {
+//       console.log("❌ Validation failed: No driver selected")
+//       setMessage("⚠️ Please select a driver.")
 //       return
 //     }
-//     if (!tripData.customerName || !tripData.pickupLocation || !tripData.dropLocation) {
-//       setMessage("⚠️ Please fill in all required trip details.")
+
+//     if (!selectedCab || selectedCab === "") {
+//       console.log("❌ Validation failed: No cab selected")
+//       setMessage("⚠️ Please select a cab.")
+//       return
+//     }
+
+//     if (!tripData.customerName.trim()) {
+//       console.log("❌ Validation failed: Missing customer name")
+//       setMessage("⚠️ Please enter customer name.")
+//       return
+//     }
+
+//     if (!tripData.customerPhone.trim()) {
+//       console.log("❌ Validation failed: Missing customer phone")
+//       setMessage("⚠️ Please enter customer phone number.")
+//       return
+//     }
+
+//     if (!tripData.pickupLocation.trim()) {
+//       console.log("❌ Validation failed: Missing pickup location")
+//       setMessage("⚠️ Please enter pickup location.")
+//       return
+//     }
+
+//     if (!tripData.dropLocation.trim()) {
+//       console.log("❌ Validation failed: Missing drop location")
+//       setMessage("⚠️ Please enter drop location.")
 //       return
 //     }
 
 //     try {
 //       const token = localStorage.getItem("token")
 //       const assignedBy = localStorage.getItem("id")
+
+//       console.log("🔐 Authentication check:")
+//       console.log("Token exists:", !!token)
+//       console.log("Assigned By ID:", assignedBy)
+
 //       if (!token || !assignedBy) {
+//         console.log("❌ Authentication failed")
 //         setMessage("⚠️ Authentication failed. Please log in again.")
 //         return
 //       }
 
-//       // Updated payload structure to match your requirements
-//       const payload = {
-//         customerName: tripData.customerName,
-//         customerPhone: tripData.customerPhone,
-//         pickupLocation: tripData.pickupLocation,
-//         dropLocation: tripData.dropLocation,
-//         tripType: tripData.tripType,
-//         vehicleType: tripData.vehicleType,
-//         driverId: selectedDriver,
-//         cabId: selectedCab, // Changed from cabNumber to cabId
-//         assignedBy: assignedBy,
-//         scheduledPickupTime: tripData.scheduledPickupTime || new Date().toISOString(),
-//         estimatedDistance: Number.parseInt(tripData.estimatedDistance) || 0,
-//         estimatedFare: Number.parseFloat(tripData.estimatedFare) || 0,
-//         specialInstructions: tripData.specialInstructions || "",
+//       const selectedDriverObj = drivers.find((driver) => driver.id.toString() === selectedDriver.toString())
+//       const selectedCabObj = cabs.find((cab) => cab.id.toString() === selectedCab.toString())
+
+//       console.log("🔍 Selected Driver Object:", selectedDriverObj)
+//       console.log("🔍 Selected Cab Object:", selectedCabObj)
+
+//       if (!selectedDriverObj) {
+//         console.log("❌ Driver object not found")
+//         console.log(
+//           "Available drivers:",
+//           drivers.map((d) => ({ id: d.id, name: d.name })),
+//         )
+//         setMessage("⚠️ Selected driver not found. Please refresh and try again.")
+//         return
 //       }
 
-//       await axios.post(`${baseURL}api/assigncab`, payload, { headers: { Authorization: `Bearer ${token}` } })
+//       if (!selectedCabObj) {
+//         console.log("❌ Cab object not found")
+//         console.log(
+//           "Available cabs:",
+//           cabs.map((c) => ({ id: c.id, cabNumber: c.cabNumber })),
+//         )
+//         setMessage("⚠️ Selected cab not found. Please refresh and try again.")
+//         return
+//       }
+
+//       // Updated payload with city and state
+//       const payload = {
+//         driverId: selectedDriverObj.id,
+//         cabNumber: selectedCabObj.cabNumber,
+//         assignedBy: Number.parseInt(assignedBy),
+//         customerName: tripData.customerName.trim(),
+//         customerPhone: tripData.customerPhone.trim(),
+//         pickupLocation: tripData.pickupLocation.trim(),
+//         pickupCity: tripData.pickupCity.trim(),
+//         pickupState: tripData.pickupState.trim(),
+//         dropLocation: tripData.dropLocation.trim(),
+//         dropCity: tripData.dropCity.trim(),
+//         dropState: tripData.dropState.trim(),
+//         tripType: tripData.tripType,
+//         vehicleType: tripData.vehicleType,
+//         duration: tripData.duration ? Number.parseFloat(tripData.duration) : 0,
+//         estimatedDistance: tripData.estimatedDistance ? Number.parseFloat(tripData.estimatedDistance) : 0,
+//         estimatedFare: tripData.estimatedFare ? Number.parseFloat(tripData.estimatedFare) : 0,
+//         scheduledPickupTime: tripData.scheduledPickupTime
+//           ? new Date(tripData.scheduledPickupTime).toISOString()
+//           : new Date().toISOString(),
+//         specialInstructions: tripData.specialInstructions.trim() || "",
+//         adminNotes: tripData.adminNotes.trim() || "",
+//       }
+
+//       console.log("📤 FINAL Payload being sent:", payload)
+
+//       // Additional validation
+//       if (!payload.driverId) {
+//         console.log("❌ Driver ID is still null/undefined")
+//         setMessage("⚠️ Driver ID not found. Please refresh and try again.")
+//         return
+//       }
+
+//       if (!payload.cabNumber) {
+//         console.log("❌ Cab number is still empty")
+//         setMessage("⚠️ Cab number not found. Please refresh and try again.")
+//         return
+//       }
+
+//       console.log("📡 Sending request to:", `${baseURL}api/assigncab`)
+
+//       const response = await axios.post(`${baseURL}api/assigncab`, payload, {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       })
+
+//       console.log("✅ Assignment successful!", response.data)
 
 //       setMessage("✅ Cab assigned successfully!")
+
+//       // Reset form
 //       setSelectedDriver("")
 //       setSelectedCab("")
 //       setTripData({
 //         customerName: "",
 //         customerPhone: "",
 //         pickupLocation: "",
+//         pickupCity: "",
+//         pickupState: "",
 //         dropLocation: "",
+//         dropCity: "",
+//         dropState: "",
 //         tripType: "One Way",
 //         vehicleType: "Sedan",
 //         scheduledPickupTime: "",
 //         estimatedDistance: "",
 //         estimatedFare: "",
 //         specialInstructions: "",
+//         duration: "",
+//         adminNotes: "",
 //       })
+
+//       console.log("🔄 Form reset completed")
 //       setTimeout(() => setMessage(""), 3000)
+
+//       // Refresh available drivers and cabs
+//       const token2 = localStorage.getItem("token")
+//       const res = await axios.get(`${baseURL}api/assigncab/freeCabsAndDrivers`, {
+//         headers: { Authorization: `Bearer ${token2}` },
+//       })
+//       setDrivers(res.data.freeDrivers || [])
+//       setCabs(res.data.freeCabs || [])
 //     } catch (error) {
-//       console.error("Error assigning cab:", error.response?.data || error)
-//       setMessage(`❌ ${error.response?.data?.message || "Error assigning cab."}`)
+//       console.error("❌ Assignment failed:", error.response?.data || error.message)
+//       const errorMessage = error.response?.data?.message || error.response?.data?.error || "Error assigning cab."
+//       setMessage(`❌ ${errorMessage}`)
 //     }
 //   }
 
 //   const handleTripDataChange = (e) => {
 //     const { name, value } = e.target
+//     console.log(`📝 Trip data updated - ${name}:`, value)
+//     // Prevent onChange from overriding Autocomplete input
+//     if (name === "pickupLocation" && !pickupInputRef.current?.value) return
+//     if (name === "dropLocation" && !dropInputRef.current?.value) return
 //     setTripData((prev) => ({ ...prev, [name]: value }))
 //   }
 
@@ -191,19 +412,23 @@
 //   const handleAddCabSubmit = async (e) => {
 //     e.preventDefault()
 //     if (!validateCabForm()) return
+
 //     setLoading(true)
 //     setCabFormSuccess("")
+
 //     try {
 //       const token = localStorage.getItem("token")
 //       const formData = new FormData()
 //       Object.entries(cabFormData).forEach(([key, value]) => {
 //         formData.append(key, value)
 //       })
+
 //       const res = await fetch(`${baseURL}api/cabDetails/add`, {
 //         method: "PATCH",
 //         headers: { Authorization: `Bearer ${token}` },
 //         body: formData,
 //       })
+
 //       const data = await res.json()
 //       if (res.ok) {
 //         setCabFormSuccess("Cab added successfully!")
@@ -231,6 +456,7 @@
 //       try {
 //         const id = localStorage.getItem("id")
 //         if (!id) return router.push("/")
+
 //         const res = await axios.get(`${baseURL}api/admin/getAllSubAdmins`)
 //         const user = res.data.subAdmins.find((e) => e._id === id)
 //         if (user?.status === "Inactive") {
@@ -268,11 +494,13 @@
 //       <Sidebar />
 //       <div className="flex-1 p-4 md:p-6 md:mt-0 md:ml-60 mt-20 sm:mt-0 transition-all duration-300">
 //         {showAccessDenied && <AccessDeniedModal />}
+
 //         {/* Header */}
 //         <div className="mb-6">
 //           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Assign Cab</h1>
 //           <p className="text-gray-600">Assign drivers to cabs and manage trip details</p>
 //         </div>
+
 //         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 //           {/* Trip Assignment Form */}
 //           <motion.div
@@ -290,6 +518,7 @@
 //                 <FaPlus className="mr-2" /> Add New Cab
 //               </button>
 //             </div>
+
 //             {loading ? (
 //               <div className="flex justify-center py-8">
 //                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
@@ -314,7 +543,7 @@
 //                     />
 //                   </div>
 //                   <div>
-//                     <label className="block text-sm font-medium text-gray-700 mb-2">Customer Phone</label>
+//                     <label className="block text-sm font-medium text-gray-700 mb-2">Customer Phone *</label>
 //                     <input
 //                       type="tel"
 //                       name="customerPhone"
@@ -322,6 +551,7 @@
 //                       onChange={handleTripDataChange}
 //                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
 //                       placeholder="Enter phone number"
+//                       required
 //                     />
 //                   </div>
 //                 </div>
@@ -336,12 +566,20 @@
 //                     <input
 //                       type="text"
 //                       name="pickupLocation"
+//                       ref={pickupInputRef}
 //                       value={tripData.pickupLocation}
 //                       onChange={handleTripDataChange}
 //                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-//                       placeholder="Enter pickup location"
+//                       placeholder={autocompleteLoaded ? "Enter pickup location" : "Loading location services..."}
+//                       disabled={!autocompleteLoaded}
 //                       required
 //                     />
+//                     {tripData.pickupCity && tripData.pickupState && (
+//                       <p className="text-xs text-gray-500 mt-1">
+//                         City: {tripData.pickupCity}, State: {tripData.pickupState}
+//                       </p>
+//                     )}
+//                     {!autocompleteLoaded && <p className="text-xs text-yellow-600 mt-1">Loading location suggestions...</p>}
 //                   </div>
 //                   <div>
 //                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -351,12 +589,20 @@
 //                     <input
 //                       type="text"
 //                       name="dropLocation"
+//                       ref={dropInputRef}
 //                       value={tripData.dropLocation}
 //                       onChange={handleTripDataChange}
 //                       className="w-full border text-black border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-//                       placeholder="Enter drop location"
+//                       placeholder={autocompleteLoaded ? "Enter drop location" : "Loading location services..."}
+//                       disabled={!autocompleteLoaded}
 //                       required
 //                     />
+//                     {tripData.dropCity && tripData.dropState && (
+//                       <p className="text-xs text-gray-500 mt-1">
+//                         City: {tripData.dropCity}, State: {tripData.dropState}
+//                       </p>
+//                     )}
+//                     {!autocompleteLoaded && <p className="text-xs text-yellow-600 mt-1">Loading location suggestions...</p>}
 //                   </div>
 //                 </div>
 
@@ -394,12 +640,11 @@
 //                       <option value="SUV">SUV</option>
 //                       <option value="Hatchback">Hatchback</option>
 //                       <option value="Luxury">Luxury</option>
-//                       <option value="Mini">Mini</option>
 //                     </select>
 //                   </div>
 //                 </div>
 
-//                 {/* New Fields: Scheduled Time and Trip Details */}
+//                 {/* Scheduled Time and Trip Details */}
 //                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //                   <div>
 //                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -450,6 +695,24 @@
 //                   </div>
 //                   <div>
 //                     <label className="block text-sm font-medium text-gray-700 mb-2">
+//                       <FaClock className="inline mr-2" />
+//                       Duration (hours)
+//                     </label>
+//                     <input
+//                       type="number"
+//                       name="duration"
+//                       value={tripData.duration}
+//                       onChange={handleTripDataChange}
+//                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+//                       placeholder="Enter trip duration in hours"
+//                       min="0"
+//                     />
+//                   </div>
+//                 </div>
+
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                   <div>
+//                     <label className="block text-sm font-medium text-gray-700 mb-2">
 //                       <FaStickyNote className="inline mr-2" />
 //                       Special Instructions
 //                     </label>
@@ -462,6 +725,20 @@
 //                       placeholder="Any special instructions"
 //                     />
 //                   </div>
+//                   <div>
+//                     <label className="block text-sm font-medium text-gray-700 mb-2">
+//                       <FaStickyNote className="inline mr-2" />
+//                       Admin Notess
+//                     </label>
+//                     <input
+//                       type="text"
+//                       name="adminNotes"
+//                       value={tripData.adminNotes}
+//                       onChange={handleTripDataChange}
+//                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+//                       placeholder="Admin notes (optional)"
+//                     />
+//                   </div>
 //                 </div>
 
 //                 {/* Driver and Cab Selection */}
@@ -471,13 +748,19 @@
 //                     <select
 //                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
 //                       value={selectedDriver}
-//                       onChange={(e) => setSelectedDriver(e.target.value)}
+//                       onChange={(e) => {
+//                         const driverId = e.target.value
+//                         console.log("🚗 Driver selected - Raw value:", driverId)
+//                         const driverObj = drivers.find((driver) => driver.id.toString() === driverId.toString())
+//                         console.log("🚗 Driver object found:", driverObj)
+//                         setSelectedDriver(driverId)
+//                       }}
 //                       required
 //                     >
 //                       <option value="">Choose a driver</option>
 //                       {drivers.length > 0 ? (
 //                         drivers.map((driver) => (
-//                           <option key={driver._id} value={driver._id}>
+//                           <option key={driver.id} value={driver.id}>
 //                             {driver.name} - {driver.licenseNumber}
 //                           </option>
 //                         ))
@@ -491,14 +774,20 @@
 //                     <select
 //                       className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
 //                       value={selectedCab}
-//                       onChange={(e) => setSelectedCab(e.target.value)}
+//                       onChange={(e) => {
+//                         const cabId = e.target.value
+//                         console.log("🚕 Cab selected - Raw value:", cabId)
+//                         const cabObj = cabs.find((cab) => cab.id.toString() === cabId.toString())
+//                         console.log("🚕 Cab object found:", cabObj)
+//                         setSelectedCab(cabId)
+//                       }}
 //                       required
 //                     >
 //                       <option value="">Choose a cab</option>
 //                       {cabs.length > 0 ? (
 //                         cabs.map((cab) => (
-//                           <option key={cab._id} value={cab._id}>
-//                             {cab.cabNumber} - {cab.model}
+//                           <option key={cab.id} value={cab.id}>
+//                             {cab.cabNumber} - {cab.model || ""}
 //                           </option>
 //                         ))
 //                       ) : (
@@ -514,6 +803,7 @@
 //                 >
 //                   Assign Cab & Create Trip
 //                 </button>
+
 //                 {message && (
 //                   <motion.p
 //                     className={`mt-4 text-center font-medium text-sm md:text-base ${
@@ -553,6 +843,7 @@
 //                 </div>
 //               </div>
 //             </div>
+
 //             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
 //               <h3 className="text-lg font-semibold text-gray-900 mb-4">Trip Types</h3>
 //               <div className="space-y-2 text-sm text-gray-600">
@@ -600,7 +891,9 @@
 //                 ✕
 //               </button>
 //             </div>
+
 //             {cabFormSuccess && <p className="text-green-600 text-center mb-4">{cabFormSuccess}</p>}
+
 //             <form onSubmit={handleAddCabSubmit} encType="multipart/form-data">
 //               {[
 //                 { name: "cabNumber", icon: <FaCar />, placeholder: "Cab Number" },
@@ -627,6 +920,7 @@
 //                   {cabFormErrors[name] && <p className="text-red-500 text-sm mt-1">{cabFormErrors[name]}</p>}
 //                 </div>
 //               ))}
+
 //               <div className="relative mt-4">
 //                 <FaUpload className="absolute left-3 top-3 text-gray-400" />
 //                 <input
@@ -638,7 +932,9 @@
 //                 />
 //                 {cabFormErrors.cabImage && <p className="text-red-500 text-sm mt-1">{cabFormErrors.cabImage}</p>}
 //               </div>
+
 //               {cabFormErrors.apiError && <p className="text-red-500 text-sm mt-4">{cabFormErrors.apiError}</p>}
+
 //               <button
 //                 type="submit"
 //                 className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg mt-4 font-medium transition-colors"
@@ -653,6 +949,8 @@
 //     </motion.div>
 //   )
 // }
+
+
 
 
 "use client"
@@ -674,6 +972,7 @@ import {
   FaRoad,
   FaDollarSign,
   FaStickyNote,
+  FaMobileAlt ,
 } from "react-icons/fa"
 import baseURL from "@/utils/api"
 import { useRouter } from "next/navigation"
@@ -1040,8 +1339,8 @@ export default function AssignCab() {
     const { name, value } = e.target
     console.log(`📝 Trip data updated - ${name}:`, value)
     // Prevent onChange from overriding Autocomplete input
-    if (name === "pickupLocation" && !pickupInputRef.current?.value) return
-    if (name === "dropLocation" && !dropInputRef.current?.value) return
+    // if (name === "pickupLocation" && !pickupInputRef.current?.value) return
+    // if (name === "dropLocation" && !dropInputRef.current?.value) return
     setTripData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -1090,6 +1389,7 @@ export default function AssignCab() {
         setCabFormSuccess("Cab added successfully!")
         setCabFormData({
           cabNumber: "",
+          imei: "",  
           insuranceNumber: "",
           insuranceExpiry: "",
           registrationNumber: "",
@@ -1384,7 +1684,7 @@ export default function AssignCab() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <FaStickyNote className="inline mr-2" />
-                      Admin Notess
+                      Admin Notes
                     </label>
                     <input
                       type="text"
@@ -1553,13 +1853,9 @@ export default function AssignCab() {
             <form onSubmit={handleAddCabSubmit} encType="multipart/form-data">
               {[
                 { name: "cabNumber", icon: <FaCar />, placeholder: "Cab Number" },
+                { name: "imei", icon: <FaMobileAlt />, placeholder: "IMEI Number" },   // <-- NEW
                 { name: "insuranceNumber", icon: <FaClipboardList />, placeholder: "Insurance Number" },
-                {
-                  name: "insuranceExpiry",
-                  icon: <FaCalendarAlt />,
-                  placeholder: "Insurance Expiry Date",
-                  type: "date",
-                },
+                {name: "insuranceExpiry",icon: <FaCalendarAlt />,placeholder: "Insurance Expiry Date",type: "date",},
                 { name: "registrationNumber", icon: <FaClipboardList />, placeholder: "Registration Number" },
               ].map(({ name, icon, placeholder, type = "text" }, index) => (
                 <div key={index} className="relative mt-4">
@@ -1605,4 +1901,3 @@ export default function AssignCab() {
     </motion.div>
   )
 }
-

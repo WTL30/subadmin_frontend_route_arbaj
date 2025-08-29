@@ -30,6 +30,7 @@ const CabDetails = () => {
         const res = await axios.get(`${baseURL}api/cabDetails`, {
           headers: { Authorization: `Bearer ${token}` },
         })
+         console.log('API response:', res.data) // Add this line
         setCabs(res.data)
       } catch (error) {
         console.error('Error fetching cabs:', error)
@@ -50,7 +51,7 @@ const CabDetails = () => {
       await axios.delete(`${baseURL}api/cabDetails/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      setCabs((prev) => prev.filter((cab) => cab.id !== id))
+      setCabs((prev) => prev.filter((cab) => cab.id !==id))
       toast.success('Cab deleted successfully')
     } catch (error) {
       toast.error('Failed to delete cab')
@@ -151,7 +152,7 @@ const CabDetails = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {cabs.map((cab) => (
-                      <tr key={cab._id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <tr key={cab.id} className="hover:bg-gray-50 transition-colors duration-200">
                         <td className="px-6 py-4">
                           <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-gray-200">
                             <Image
@@ -191,7 +192,7 @@ const CabDetails = () => {
                               <FiEdit size={16} />
                             </button>
                             <button 
-                              onClick={() => handleDelete(cab._id)} 
+                              onClick={() => handleDelete(cab.id)} 
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200 shadow-sm"
                               title="Delete Cab"
                             >
@@ -209,7 +210,7 @@ const CabDetails = () => {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
               {cabs.map((cab) => (
-                <div key={cab._id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <div key={cab.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                   <div className="flex items-start space-x-4">
                     <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-gray-200 flex-shrink-0">
                       <Image
