@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     flex: 2,
   },
-  // Route Information
+ //this is styling part of routebudget
   routeContainer: {
     backgroundColor: "#ecfdf5",
     padding: 15,
