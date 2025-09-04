@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Sidebar from "../slidebar/page";
 import { Bot } from "lucide-react";
+import baseURL from "@/utils/api";
 
 const Page = () => {
   const [prompt, setPrompt] = useState("");
@@ -14,7 +15,7 @@ const Page = () => {
     setResponse("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/ai-response", {
+      const res = await fetch(`${baseURL}api/ai-response`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),

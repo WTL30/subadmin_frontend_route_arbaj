@@ -1,4 +1,7 @@
-const baseURL = "https://api.routebudget.com/";
-// const baseURL = "http://localhost:5000/";
-// const baseURL = "https://car-expenses-backend.vercel.app/"
+// Resolve API base URL from environment for both dev and prod.
+// Use NEXT_PUBLIC_ so it is exposed to the browser at build/runtime in Next.js.
+const baseURL =
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_BASE_URL) ||
+  "https://api.routebudget.com/";
+
 export default baseURL;

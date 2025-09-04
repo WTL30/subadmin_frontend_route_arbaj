@@ -2561,6 +2561,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import Sidebar from "../slidebar/page"
+import baseURL from "@/utils/api"
 
 // Function to convert decimal coordinates to DMS format (degrees, minutes, seconds)
 const convertToDMS = (coordinate, isLatitude) => {
@@ -2909,15 +2910,20 @@ const DynamicGPSTracking = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // WebSocket refs and environment-configured endpoints
+  const wsRef = useRef(null)
+  const reconnectTimeoutRef = useRef(null)
+  const API_BASE_URL = `${baseURL}api`
+  const WS_URL =
+    (typeof process !== "undefined" && process.env.NEXT_PUBLIC_WS_URL) ||
+    (typeof window !== "undefined" && window.location?.protocol === "https:"
+      ? "wss://api.routebudget.com/ws"
+      : "ws://localhost:6010/ws")
+
   // WebSocket state with better tracking
   const [wsConnected, setWsConnected] = useState(false)
   const [wsError, setWsError] = useState(null)
   const [reconnectAttempts, setReconnectAttempts] = useState(0)
-  const wsRef = useRef(null)
-  const reconnectTimeoutRef = useRef(null)
-
-  const API_BASE_URL = "http://localhost:5000/api"
-  const WS_URL = "ws://localhost:6010"
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token")
