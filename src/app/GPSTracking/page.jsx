@@ -1781,7 +1781,7 @@
 //   const reconnectTimeoutRef = useRef(null)
 
 //   const API_BASE_URL = 'http://localhost:5000/api'
-//   const WS_URL = 'ws://localhost:6010'
+//   const WS_URL = 'ws://localhost:7001'
 
 //   const getAuthHeaders = () => {
 //     const token = localStorage.getItem("token")
@@ -2918,7 +2918,7 @@ const DynamicGPSTracking = () => {
     (typeof process !== "undefined" && process.env.NEXT_PUBLIC_WS_URL) ||
     (typeof window !== "undefined" && window.location?.protocol === "https:"
       ? "wss://api.routebudget.com/ws"
-      : "ws://localhost:6010/ws")
+      : "ws://localhost:7001/ws")
 
   // WebSocket state with better tracking
   const [wsConnected, setWsConnected] = useState(false)
@@ -2954,6 +2954,8 @@ const DynamicGPSTracking = () => {
       console.log(`📡 Attempt #${reconnectAttempts + 1}`)
 
       const ws = new WebSocket(WS_URL)
+      // Store reference so effects and cleanup can manage a single live connection
+      wsRef.current = ws
 
       const connectionTimeout = setTimeout(() => {
         if (ws.readyState === WebSocket.CONNECTING) {
@@ -2989,6 +2991,12 @@ const DynamicGPSTracking = () => {
         try {
           const gpsData = JSON.parse(event.data)
           console.log("🛰️  Parsed GPS Data:", gpsData)
+
+          // Gracefully ignore subscription confirmation messages
+          if (gpsData && gpsData.type === "subscription_confirmed") {
+            console.log(`✅ Subscription confirmed for IMEI: ${gpsData.imei}`)
+            return
+          }
 
           if (!gpsData.imei || gpsData.lat === undefined || gpsData.lon === undefined) {
             console.warn("⚠️  Invalid GPS data structure:", gpsData)
@@ -3071,6 +3079,10 @@ const DynamicGPSTracking = () => {
         clearTimeout(connectionTimeout)
         console.log(`🔌 WebSocket disconnected. Code: ${event.code}, Reason: ${event.reason}`)
         setWsConnected(false)
+        // Clear reference on close
+        if (wsRef.current === ws) {
+          wsRef.current = null
+        }
 
         if (reconnectAttempts < 5) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000)
@@ -3093,6 +3105,10 @@ const DynamicGPSTracking = () => {
         console.error("❌ WebSocket error:", error)
         setWsConnected(false)
         setWsError("WebSocket connection error")
+        // Clear reference on error to allow clean retries
+        if (wsRef.current === ws) {
+          wsRef.current = null
+        }
       }
 
       wsRef.current = ws
