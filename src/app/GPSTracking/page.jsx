@@ -377,7 +377,11 @@ const DynamicGPSTracking = () => {
   // WebSocket configuration
   const wsRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
-  const WS_URL = "ws://194.164.148.5:7001"  // Your VPS WebSocket server
+  const WS_URL =
+    (typeof window !== "undefined" && process.env.NEXT_PUBLIC_WS_URL) ||
+    (typeof window !== "undefined"
+      ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}${process.env.NEXT_PUBLIC_WS_PATH || "/ws"}`
+      : "wss://api.routebudget.com/ws")  // Fallback for SSR/build
 
   // WebSocket state with better tracking
   const [wsConnected, setWsConnected] = useState(false)
@@ -449,7 +453,7 @@ const DynamicGPSTracking = () => {
         try {
           const gpsData = JSON.parse(event.data)
           // Handle subscription confirmation
-          if (gpsData && gpsData.type === "subscription_confirmed") {
+          if (gpsData && (gpsData.type === "subscription_confirmed" || gpsData.type === "subscribed")) {
             console.log(`✅ Subscription confirmed for IMEI: ${gpsData.imei}`)
             return
           }
@@ -550,15 +554,15 @@ const DynamicGPSTracking = () => {
         const headers = getAuthHeaders()
 
         const [cabsResponse, driversResponse, assignmentsResponse] = await Promise.all([
-          fetch(`${baseURL}cabDetails`, {
+          fetch(`${baseURL}api/cabDetails`, {
             method: "GET",
             headers: headers,
           }),
-          fetch(`${baseURL}driver/profile`, {
+          fetch(`${baseURL}api/driver/profile`, {
             method: "GET",
             headers: headers,
           }),
-          fetch(`${baseURL}assigncab`, {
+          fetch(`${baseURL}api/assigncab`, {
             method: "GET",
             headers: headers,
           }),
