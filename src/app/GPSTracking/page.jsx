@@ -377,11 +377,18 @@ const DynamicGPSTracking = () => {
   // WebSocket configuration
   const wsRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
-  const WS_URL =
-    (typeof window !== "undefined" && process.env.NEXT_PUBLIC_WS_URL) ||
-    (typeof window !== "undefined"
-      ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}${process.env.NEXT_PUBLIC_WS_PATH || "/ws"}`
-      : "wss://api.routebudget.com/ws")  // Fallback for SSR/build
+  // Prefer explicit env; otherwise derive from API baseURL's host (api.*), not the current page host (admin.*)
+  const WS_URL = (() => {
+    const explicit = (typeof window !== "undefined" && process.env.NEXT_PUBLIC_WS_URL);
+    if (explicit) return explicit;
+    try {
+      const api = new URL(baseURL);
+      const scheme = api.protocol === "https:" ? "wss" : "ws";
+      return `${scheme}://${api.host}${process.env.NEXT_PUBLIC_WS_PATH || "/ws"}`;
+    } catch {
+      return "wss://api.routebudget.com/ws"; // Fallback
+    }
+  })();
 
   // WebSocket state with better tracking
   const [wsConnected, setWsConnected] = useState(false)
